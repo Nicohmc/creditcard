@@ -171,8 +171,8 @@ footer { text-align:center; padding:24px; color:var(--sub); }
     </div>
     <div style="text-align:right;line-height:1.55">
       <div id="connection">尚未連線</div>
-      <small id="siteVersion" style="display:block">網站版本：v1.1.2</small>
-      <small id="sitePublished" style="display:block">網站發布：2026/10/14 10:42（台灣）</small>
+      <small id="siteVersion" style="display:block">網站版本：v1.1.3</small>
+      <small id="sitePublished" style="display:block">網站發布：2026/10/14 10:47（台灣）</small>
     </div>
   </div>
 </header>
@@ -225,7 +225,7 @@ footer { text-align:center; padding:24px; color:var(--sub); }
   <section id="update" class="page">
     <div class="panel">
       <h2>資料庫與更新中心</h2>
-      <p class="muted">網站程式版本：v1.1.2｜本次發布時間：2026/10/14 10:42（台灣時間）</p>
+      <p class="muted">網站程式版本：v1.1.3｜本次發布時間：2026/10/14 10:47（台灣時間）</p>
       <p class="muted">注意：以上是網站程式發布時間，不是銀行優惠資料更新時間。</p>
       <div id="dbStatus" class="notice">
         尚未連接 Google Apps Script。
@@ -343,47 +343,30 @@ function api(action) {
 }
 
 async function loadData() {
-  $("connection").textContent = "連線中…";
-  $("dbStatus").textContent = "正在逐項讀取資料庫，請稍候…";
-
-  // 避免同時向 Apps Script 發出 4 個跨網域請求。
-  // 先確認 status，再分別讀取資料，較容易找出失敗環節。
-  try {
-    const status = await api("status");
-    if (!status.ok) throw new Error("狀態查詢失敗：" + (status.error || "未知錯誤"));
-    $("connection").textContent = "● 後端已回應";
-    $("dbStatus").textContent = "後端連線成功，正在讀取信用卡…";
-
-    const cardResponse = await api("cards");
-    if (!cardResponse.ok) throw new Error("信用卡資料：" + (cardResponse.error || "查詢失敗"));
-    cards = cardResponse.data || [];
-    renderCards();
-    $("dbStatus").textContent = "已讀取 " + cards.length + " 張信用卡，正在讀取優惠…";
-
-    const offerResponse = await api("offers");
-    if (!offerResponse.ok) throw new Error("優惠資料：" + (offerResponse.error || "查詢失敗"));
-    offers = offerResponse.data || [];
-
-    const merchantResponse = await api("merchants");
-    if (!merchantResponse.ok) throw new Error("商店資料：" + (merchantResponse.error || "查詢失敗"));
-    merchants = merchantResponse.data || [];
-
-    $("connection").textContent = "● 已連線";
-    $("dbStatus").innerHTML =
-      "信用卡：" + cards.length + " 張<br>" +
-      "優惠：" + offers.length + " 筆<br>" +
-      "商店：" + merchants.length + " 筆<br>" +
-      "後端程式版本：" + escapeHTML(status.version) +
-      "<br><br>注意：官方來源檢查不代表優惠已更新。";
-    renderOffers();
-    searchOffers();
-  } catch (error) {
-    $("connection").textContent = "● 連線失敗";
-    $("dbStatus").textContent = error.message;
-    $("searchResults").textContent =
-      "尚未完整連接資料庫：" + error.message;
-    if (cards.length) renderCards();
+  $("connection").textContent = "● 連線測試中";
+  const tasks = [["status","後端狀態"],["cards","信用卡清單"],["offers","優惠資料"],["merchants","商店資料"]];
+  const ok = {};
+  const logs = [];
+  for (const [action,label] of tasks) {
+    $("dbStatus").textContent = "正在讀取：" + label;
+    try {
+      const response = await api(action);
+      if (!response?.ok) throw new Error(response?.error || "無效回應");
+      ok[action] = true;
+      logs.push("✓ " + label + "：成功");
+      if (action === "cards") { cards = response.data || []; renderCards(); }
+      if (action === "offers") { offers = response.data || []; renderOffers(); }
+      if (action === "merchants") merchants = response.data || [];
+    } catch (error) {
+      logs.push("✕ " + label + "：" + (error.message || error));
+    }
   }
+  const count = Object.keys(ok).length;
+  $("connection").textContent = count === 4 ? "● 已連線" : count ? "● 部分連線成功" : "● 連線失敗";
+  $("dbStatus").style.whiteSpace = "pre-line";
+  $("dbStatus").textContent = logs.join("\n") + "\n\n信用卡：" + cards.length + " 張｜優惠：" + offers.length + " 筆｜商店：" + merchants.length + " 筆";
+  if (ok.cards && ok.offers && ok.merchants) searchOffers();
+  else $("searchResults").textContent = "部分資料尚未載入，請查看更新分頁的診斷結果。";
 }
 
 function renderCards() {
