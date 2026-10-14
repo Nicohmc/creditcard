@@ -316,7 +316,7 @@ function api(action) {
     };
 
     script.onerror = () => fail(
-      new Error("無法取得 Apps Script 資料")
+      new Error("瀏覽器無法載入 Apps Script 回應（可能被瀏覽器或 Google 的跨站安全設定阻擋）")
     );
 
     script.src =
@@ -330,40 +330,45 @@ function api(action) {
 
 async function loadData() {
   $("connection").textContent = "連線中…";
+  $("dbStatus").textContent = "正在逐項讀取資料庫，請稍候…";
 
+  // 避免同時向 Apps Script 發出 4 個跨網域請求。
+  // 先確認 status，再分別讀取資料，較容易找出失敗環節。
   try {
-    const [c, o, m, s] = await Promise.all([
-      api("cards"),
-      api("offers"),
-      api("merchants"),
-      api("status")
-    ]);
+    const status = await api("status");
+    if (!status.ok) throw new Error("狀態查詢失敗：" + (status.error || "未知錯誤"));
+    $("connection").textContent = "● 後端已回應";
+    $("dbStatus").textContent = "後端連線成功，正在讀取信用卡…";
 
-    if (![c, o, m, s].every(x => x.ok)) {
-      throw new Error("資料庫回傳錯誤");
-    }
+    const cardResponse = await api("cards");
+    if (!cardResponse.ok) throw new Error("信用卡資料：" + (cardResponse.error || "查詢失敗"));
+    cards = cardResponse.data || [];
+    renderCards();
+    $("dbStatus").textContent = "已讀取 " + cards.length + " 張信用卡，正在讀取優惠…";
 
-    cards = c.data;
-    offers = o.data;
-    merchants = m.data;
+    const offerResponse = await api("offers");
+    if (!offerResponse.ok) throw new Error("優惠資料：" + (offerResponse.error || "查詢失敗"));
+    offers = offerResponse.data || [];
+
+    const merchantResponse = await api("merchants");
+    if (!merchantResponse.ok) throw new Error("商店資料：" + (merchantResponse.error || "查詢失敗"));
+    merchants = merchantResponse.data || [];
 
     $("connection").textContent = "● 已連線";
     $("dbStatus").innerHTML =
       "信用卡：" + cards.length + " 張<br>" +
       "優惠：" + offers.length + " 筆<br>" +
       "商店：" + merchants.length + " 筆<br>" +
-      "資料版本：" + escapeHTML(s.version) +
+      "資料版本：" + escapeHTML(status.version) +
       "<br><br>注意：官方來源檢查不代表優惠已更新。";
-
-    renderCards();
     renderOffers();
     searchOffers();
-
   } catch (error) {
     $("connection").textContent = "● 連線失敗";
     $("dbStatus").textContent = error.message;
     $("searchResults").textContent =
-      "尚未連接資料庫：" + error.message;
+      "尚未完整連接資料庫：" + error.message;
+    if (cards.length) renderCards();
   }
 }
 
