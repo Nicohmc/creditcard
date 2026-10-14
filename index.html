@@ -254,15 +254,14 @@ footer { text-align:center; padding:24px; color:var(--sub); }
 
 <script>
 // 部署 Apps Script 後，也可以直接把網址寫在這裡。
-const DEFAULT_API_URL = "";
+const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbzkV4ufmQ1HrU4HdGgMleHIimew1x-GwrnZhi9NXq8ANoZyL3ZTlxudCFawSJd3uqZBRw/exec";
 
 // 這是你的試算表，不是公開編輯權限。
 const SHEET_URL =
   "https://docs.google.com/spreadsheets/d/" +
   "19Ipfq5FZDPnfj1-lACmxVfeLP4XwzQ1Uoc5EyfFAWtI/edit";
 
-let apiUrl = localStorage.getItem("cardApiUrl")
-  || DEFAULT_API_URL;
+let apiUrl = DEFAULT_API_URL || localStorage.getItem("cardApiUrl") || "";
 let cards = [];
 let offers = [];
 let merchants = [];
