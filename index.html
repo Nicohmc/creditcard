@@ -171,8 +171,8 @@ footer { text-align:center; padding:24px; color:var(--sub); }
     </div>
     <div style="text-align:right;line-height:1.55">
       <div id="connection">尚未連線</div>
-      <small id="siteVersion" style="display:block">網站版本：v1.1.4</small>
-      <small id="sitePublished" style="display:block">網站發布：2026/10/14 10:59（台灣）</small>
+      <small id="siteVersion" style="display:block">網站版本：v1.2.0</small>
+      <small id="sitePublished" style="display:block">網站發布：2026/10/14 11:59（台灣）</small>
     </div>
   </div>
 </header>
@@ -225,19 +225,19 @@ footer { text-align:center; padding:24px; color:var(--sub); }
   <section id="update" class="page">
     <div class="panel">
       <h2>資料庫與更新中心</h2>
-      <p class="muted">網站程式版本：v1.1.4｜本次發布時間：2026/10/14 10:59（台灣時間）</p>
+      <p class="muted">網站程式版本：v1.2.0｜本次發布時間：2026/10/14 11:59（台灣時間）</p>
       <p class="muted">注意：以上是網站程式發布時間，不是銀行優惠資料更新時間。</p>
       <div id="dbStatus" class="notice">
         尚未連接 Google Apps Script。
       </div>
       <div class="actions">
-        <button id="reloadBtn">重新讀取資料庫</button>
+        <button id="reloadBtn">重新讀取已同步資料</button>\n        <button id="syncGitHubBtn" class="secondary">前往 GitHub 手動同步</button>
         <button class="secondary" id="checkSourcesBtn">
           前往官方來源檢查
         </button>
       </div>
       <p class="muted">
-        第一版的「重新讀取」只重新載入 Google Sheets。
+        「重新讀取」只讀取 GitHub 已保存的資料快照，不會重新向 Google 或銀行抓取資料。
         「檢查官方來源」需由試算表擁有者執行，
         並不會自動解析新的信用卡優惠。
       </p>
@@ -251,7 +251,7 @@ footer { text-align:center; padding:24px; color:var(--sub); }
       </div>
       <p class="muted">正常結果：第一個連結應以 cardTest( 開頭、card_count 為 5；第二個連結應以 cardTest( 開頭，包含五張卡的 data 陣列。</p>
       <div style="margin:22px 0;border-top:1px solid #e5eaf1"></div>
-      <h2>後端連線設定</h2>
+      <h2>進階：Apps Script 測試設定</h2>
       <label for="apiInput">Apps Script /exec 網址</label>
       <input id="apiInput"
         placeholder="https://script.google.com/macros/s/.../exec">
@@ -350,31 +350,32 @@ function api(action) {
 }
 
 async function loadData() {
-  $("connection").textContent = "● 連線測試中";
-  const tasks = [["status","後端狀態"],["cards","信用卡清單"],["offers","優惠資料"],["merchants","商店資料"]];
-  const ok = {};
-  const logs = [];
-  for (const [action,label] of tasks) {
-    $("dbStatus").textContent = "正在讀取：" + label;
-    try {
-      const response = await api(action);
-      if (!response?.ok) throw new Error(response?.error || "無效回應");
-      ok[action] = true;
-      logs.push("✓ " + label + "：成功");
-      if (action === "cards") { cards = response.data || []; renderCards(); }
-      if (action === "offers") { offers = response.data || []; renderOffers(); }
-      if (action === "merchants") merchants = response.data || [];
-    } catch (error) {
-      logs.push("✕ " + label + "：" + (error.message || error));
-    }
+  $("connection").textContent = "● 讀取資料中";
+  try {
+    const response = await fetch("./data/creditcards.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("尚未產生同步資料（HTTP " + response.status + "）");
+    const data = await response.json();
+    if (!Array.isArray(data.cards) || !Array.isArray(data.offers) || !Array.isArray(data.merchants))
+      throw new Error("同步資料格式不正確");
+    cards = data.cards;
+    offers = data.offers;
+    merchants = data.merchants;
+    renderCards();
+    renderOffers();
+    searchOffers();
+    $("connection").textContent = "● 已載入同步資料";
+    $("dbStatus").textContent = "資料來源：GitHub 靜態快照\n最後成功同步：" +
+      (data.syncedAt ? new Date(data.syncedAt).toLocaleString("zh-TW", {timeZone:"Asia/Taipei", hour12:false}) : "未知") +
+      "（台灣時間）\n信用卡：" + cards.length + " 張｜優惠：" + offers.length + " 筆｜商店：" + merchants.length + " 筆";
+  } catch (error) {
+    cards = SAVED_CARDS.slice(); offers = []; merchants = [];
+    renderCards(); renderOffers();
+    $("connection").textContent = "● 離線備用模式";
+    $("dbStatus").textContent = "尚未讀到同步資料：" + error.message +
+      "\n請前往 GitHub Actions 手動執行「手動同步信用卡資料」。\n現在顯示的五張卡為備用清單，非即時同步。";
+    $("searchResults").textContent = "尚未有可搜尋的同步優惠資料。";
   }
-  const count = Object.keys(ok).length;
-  if (!ok.cards) { cards = SAVED_CARDS.slice(); renderCards(); logs.push("備註：持卡清單是已確認的備用資料，非即時同步。"); }
-  $("connection").textContent = count === 4 ? "● 已連線" : count ? "● 部分連線成功" : "● 離線模式";
   $("dbStatus").style.whiteSpace = "pre-line";
-  $("dbStatus").textContent = logs.join("\n") + "\n\n信用卡：" + cards.length + " 張｜優惠：" + offers.length + " 筆｜商店：" + merchants.length + " 筆";
-  if (ok.cards && ok.offers && ok.merchants) searchOffers();
-  else $("searchResults").textContent = "部分資料尚未載入，請查看更新分頁的診斷結果。";
 }
 
 function renderCards() {
@@ -509,7 +510,7 @@ $("searchInput").addEventListener("keydown", e => {
   if (e.key === "Enter") searchOffers();
 });
 
-$("reloadBtn").addEventListener("click", loadData);
+$("reloadBtn").addEventListener("click", loadData);\n$("syncGitHubBtn").addEventListener("click", () => window.open("https://github.com/Nicohmc/creditcard/actions/workflows/sync-cards.yml", "_blank", "noopener"));
 
 $("checkSourcesBtn").addEventListener("click", () => {
   window.open(SHEET_URL, "_blank", "noopener");
