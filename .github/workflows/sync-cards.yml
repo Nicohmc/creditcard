@@ -1,0 +1,32 @@
+name: 手動同步信用卡資料
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download public card data
+        env:
+          APPS_SCRIPT_URL: https://script.google.com/macros/s/AKfycbzkV4ufmQ1HrU4HdGgMleHIimew1x-GwrnZhi9NXq8ANoZyL3ZTlxudCFawSJd3uqZBRw/exec
+        run: node scripts/sync-cards.mjs
+      - name: Commit changed data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/creditcards.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync public credit card data"
+            git push
+          else
+            echo "No changes"
+          fi
