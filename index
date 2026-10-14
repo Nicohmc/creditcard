@@ -1,0 +1,537 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>刷哪張？信用卡優惠智慧助手</title>
+<style>
+:root {
+  --bg:#f5f7fb;
+  --white:#fff;
+  --ink:#172b46;
+  --sub:#69788a;
+  --blue:#3159d9;
+  --line:#e5eaf1;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+}
+header {
+  background:var(--white);
+  border-bottom:1px solid var(--line);
+  padding:18px 22px;
+}
+.header-inner {
+  max-width:1050px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+h1 { margin:0; font-size:24px; }
+h2 { margin:0 0 15px; font-size:20px; }
+p { line-height:1.65; }
+small,.muted { color:var(--sub); }
+main { max-width:1050px; margin:25px auto; padding:0 16px; }
+.panel {
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:22px;
+  margin-bottom:18px;
+}
+.hero {
+  background:linear-gradient(135deg,#253c75,#3159d9);
+  color:white;
+  padding:32px;
+}
+.hero h2 { font-size:28px; }
+.hero p { opacity:.88; }
+.search-row {
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+}
+input,select {
+  min-width:0;
+  width:100%;
+  padding:14px;
+  border:1px solid #d6dfec;
+  border-radius:11px;
+  font:inherit;
+  background:white;
+}
+button,.button {
+  cursor:pointer;
+  font:inherit;
+  border:0;
+  border-radius:11px;
+  padding:13px 18px;
+  background:var(--blue);
+  color:white;
+  font-weight:650;
+  text-decoration:none;
+  display:inline-block;
+}
+button:disabled { opacity:.5; cursor:not-allowed; }
+.secondary {
+  background:#ecf1ff;
+  color:#294cbd;
+}
+.hero button { background:white; color:#2747ad; }
+.tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:18px;
+  overflow:auto;
+}
+.tabs button {
+  flex:1;
+  white-space:nowrap;
+  background:#e9edf5;
+  color:#34445f;
+}
+.tabs button.active { background:var(--ink); color:white; }
+.page { display:none; }
+.page.active { display:block; }
+.card-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+.card {
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:17px;
+  background:white;
+}
+.card h3 { margin:0 0 8px; }
+.tag {
+  display:inline-block;
+  background:#eaf0ff;
+  color:#3155bd;
+  border-radius:20px;
+  padding:5px 10px;
+  font-size:12px;
+  margin:4px 4px 4px 0;
+}
+.notice {
+  background:#fff8e8;
+  border:1px solid #f4e0b1;
+  border-radius:12px;
+  padding:14px;
+  color:#775921;
+  margin:14px 0;
+}
+.result {
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+  margin:12px 0;
+}
+.result-top {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:start;
+}
+.result h3 { margin:0 0 6px; }
+.reward {
+  font-size:24px;
+  font-weight:750;
+  color:#2251c6;
+  white-space:nowrap;
+}
+.meta { color:var(--sub); font-size:13px; }
+a { color:var(--blue); overflow-wrap:anywhere; }
+.actions { display:flex; gap:10px; flex-wrap:wrap; }
+footer { text-align:center; padding:24px; color:var(--sub); }
+@media(max-width:600px) {
+  .search-row { flex-direction:column; }
+  .hero { padding:23px; }
+  .hero h2 { font-size:23px; }
+  .panel { padding:17px; }
+  .tabs button { flex:auto; font-size:13px; }
+  .reward { font-size:20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>💳 刷哪張？</h1>
+      <small>信用卡優惠智慧搜尋系統</small>
+    </div>
+    <span id="connection">尚未連線</span>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="active" data-tab="search">🔎 搜尋</button>
+    <button data-tab="cards">💳 信用卡</button>
+    <button data-tab="offers">🎁 優惠</button>
+    <button data-tab="update">🔄 更新</button>
+  </div>
+
+  <section id="search" class="page active">
+    <div class="panel hero">
+      <h2>今天要去哪裡消費？</h2>
+      <p>搜尋商店或品牌，找出你持有的信用卡優惠。</p>
+      <div class="search-row">
+        <input id="searchInput"
+          placeholder="例如：momo、IKEA、全聯、星巴克">
+        <button id="searchBtn">搜尋優惠</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>搜尋結果</h2>
+      <div id="searchResults" class="muted">
+        請先連接資料庫，再輸入商店名稱。
+      </div>
+    </div>
+  </section>
+
+  <section id="cards" class="page">
+    <div class="panel">
+      <h2>我的信用卡</h2>
+      <div id="cardList" class="card-grid"></div>
+    </div>
+  </section>
+
+  <section id="offers" class="page">
+    <div class="panel">
+      <h2>已匯入的優惠資料</h2>
+      <p class="muted">
+        僅顯示資料庫中有紀錄的優惠。
+        每筆優惠仍需查看官方條件。
+      </p>
+      <div id="offerList"></div>
+    </div>
+  </section>
+
+  <section id="update" class="page">
+    <div class="panel">
+      <h2>資料庫與更新中心</h2>
+      <div id="dbStatus" class="notice">
+        尚未連接 Google Apps Script。
+      </div>
+      <div class="actions">
+        <button id="reloadBtn">重新讀取資料庫</button>
+        <button class="secondary" id="checkSourcesBtn">
+          前往官方來源檢查
+        </button>
+      </div>
+      <p class="muted">
+        第一版的「重新讀取」只重新載入 Google Sheets。
+        「檢查官方來源」需由試算表擁有者執行，
+        並不會自動解析新的信用卡優惠。
+      </p>
+    </div>
+    <div class="panel">
+      <h2>後端連線設定</h2>
+      <label for="apiInput">Apps Script /exec 網址</label>
+      <input id="apiInput"
+        placeholder="https://script.google.com/macros/s/.../exec">
+      <p><button id="connectBtn">連接資料庫</button></p>
+      <small>連線網址只儲存在目前瀏覽器的設定中。</small>
+    </div>
+  </section>
+</main>
+
+<footer>
+  刷哪張？｜個人信用卡優惠管理工具<br>
+  優惠以官方公告為準
+</footer>
+
+<script>
+// 部署 Apps Script 後，也可以直接把網址寫在這裡。
+const DEFAULT_API_URL = "";
+
+// 這是你的試算表，不是公開編輯權限。
+const SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/" +
+  "19Ipfq5FZDPnfj1-lACmxVfeLP4XwzQ1Uoc5EyfFAWtI/edit";
+
+let apiUrl = localStorage.getItem("cardApiUrl")
+  || DEFAULT_API_URL;
+let cards = [];
+let offers = [];
+let merchants = [];
+
+const $ = id => document.getElementById(id);
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+// JSONP：僅供公開、非敏感的唯讀資料使用。
+function api(action) {
+  return new Promise((resolve, reject) => {
+    if (!apiUrl) {
+      reject(new Error("請先設定 Apps Script 網址"));
+      return;
+    }
+
+    const callback =
+      "cardCb_" + Math.random().toString(36).slice(2);
+
+    const script = document.createElement("script");
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      fail(new Error("連線逾時"));
+    }, 15000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+    }
+
+    function fail(error) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    }
+
+    window[callback] = data => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => fail(
+      new Error("無法取得 Apps Script 資料")
+    );
+
+    script.src =
+      apiUrl + (apiUrl.includes("?") ? "&" : "?") +
+      "action=" + encodeURIComponent(action) +
+      "&callback=" + encodeURIComponent(callback);
+
+    document.head.appendChild(script);
+  });
+}
+
+async function loadData() {
+  $("connection").textContent = "連線中…";
+
+  try {
+    const [c, o, m, s] = await Promise.all([
+      api("cards"),
+      api("offers"),
+      api("merchants"),
+      api("status")
+    ]);
+
+    if (![c, o, m, s].every(x => x.ok)) {
+      throw new Error("資料庫回傳錯誤");
+    }
+
+    cards = c.data;
+    offers = o.data;
+    merchants = m.data;
+
+    $("connection").textContent = "● 已連線";
+    $("dbStatus").innerHTML =
+      "信用卡：" + cards.length + " 張<br>" +
+      "優惠：" + offers.length + " 筆<br>" +
+      "商店：" + merchants.length + " 筆<br>" +
+      "資料版本：" + escapeHTML(s.version) +
+      "<br><br>注意：官方來源檢查不代表優惠已更新。";
+
+    renderCards();
+    renderOffers();
+    searchOffers();
+
+  } catch (error) {
+    $("connection").textContent = "● 連線失敗";
+    $("dbStatus").textContent = error.message;
+    $("searchResults").textContent =
+      "尚未連接資料庫：" + error.message;
+  }
+}
+
+function renderCards() {
+  $("cardList").innerHTML = cards.map(card => `
+    <div class="card">
+      <span class="tag">${escapeHTML(card.bank)}</span>
+      <h3>${escapeHTML(card.card_name)}</h3>
+      <div class="meta">${escapeHTML(card.card_type)}</div>
+    </div>
+  `).join("") || "尚無信用卡資料";
+}
+
+function offerActive(offer) {
+  const today = new Date().toISOString().slice(0,10);
+  if (offer.start_date && offer.start_date > today) return false;
+  if (offer.end_date && offer.end_date < today) return false;
+  return true;
+}
+
+function offerHTML(offer) {
+  const card = offer.card || {};
+  const plan = offer.plan || {};
+  const source = offer.source || {};
+
+  const merchantNames = (offer.merchants || [])
+    .filter(link => link.included !== "FALSE")
+    .map(link => link.merchant?.merchant_name || "")
+    .filter(Boolean);
+
+  const safeUrl = /^https:\/\//i.test(source.source_url || "")
+    ? source.source_url : "";
+
+  return `
+    <div class="result">
+      <div class="result-top">
+        <div>
+          <h3>${escapeHTML(offer.offer_name)}</h3>
+          <div class="meta">
+            ${escapeHTML(card.bank || "")}
+            ${escapeHTML(card.card_name || "")}
+          </div>
+        </div>
+        <div class="reward">
+          ${escapeHTML(offer.reward_value || "查看條件")}
+        </div>
+      </div>
+      <p>${escapeHTML(offer.notes || "")}</p>
+      ${plan.plan_name
+        ? `<span class="tag">權益：${escapeHTML(plan.plan_name)}</span>`
+        : ""}
+      <div class="meta">
+        適用商店：${escapeHTML(merchantNames.join("、") || "未指定")}
+        <br>
+        期限：${escapeHTML(offer.start_date || "未提供")}
+        ～ ${escapeHTML(offer.end_date || "未提供")}
+        <br>
+        驗證狀態：${escapeHTML(offer.verification_status || "未確認")}
+      </div>
+      ${safeUrl
+        ? `<p><a href="${escapeHTML(safeUrl)}"
+             target="_blank" rel="noopener noreferrer">
+             查看官方來源 ↗
+           </a></p>`
+        : ""}
+    </div>
+  `;
+}
+
+function renderOffers() {
+  const valid = offers.filter(offerActive);
+
+  $("offerList").innerHTML = valid.length
+    ? valid.map(offerHTML).join("")
+    : '<div class="notice">尚無已匯入且在有效期間的優惠。</div>';
+}
+
+function searchOffers() {
+  const query = $("searchInput").value.trim().toLowerCase();
+
+  if (!query) {
+    $("searchResults").textContent = "請輸入商店或品牌名稱。";
+    return;
+  }
+
+  const matchingMerchants = merchants.filter(m => {
+    const terms = [
+      m.merchant_name, m.aliases, m.parent_company
+    ].join(" ").toLowerCase();
+
+    return terms.includes(query);
+  }).map(m => m.merchant_id);
+
+  const found = offers.filter(offer => {
+    if (!offerActive(offer)) return false;
+
+    const linked = (offer.merchants || [])
+      .some(link =>
+        link.included !== "FALSE" &&
+        matchingMerchants.includes(link.merchant_id)
+      );
+
+    return linked;
+  });
+
+  $("searchResults").innerHTML = found.length
+    ? found.map(offerHTML).join("")
+    : `<div class="notice">
+        找不到「${escapeHTML(query)}」的已匯入優惠。<br>
+        這不代表銀行一定沒有優惠，
+        可能只是資料尚未收錄。
+       </div>`;
+}
+
+function openTab(name) {
+  document.querySelectorAll(".page").forEach(el => {
+    el.classList.toggle("active", el.id === name);
+  });
+
+  document.querySelectorAll(".tabs button").forEach(el => {
+    el.classList.toggle("active", el.dataset.tab === name);
+  });
+}
+
+document.querySelectorAll("[data-tab]").forEach(button => {
+  button.addEventListener("click", () => {
+    openTab(button.dataset.tab);
+  });
+});
+
+$("searchBtn").addEventListener("click", searchOffers);
+$("searchInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") searchOffers();
+});
+
+$("reloadBtn").addEventListener("click", loadData);
+
+$("checkSourcesBtn").addEventListener("click", () => {
+  window.open(SHEET_URL, "_blank", "noopener");
+  alert(
+    "請在 Google 試算表上方選擇：\n" +
+    "信用卡優惠管理 → 檢查官方來源\n\n" +
+    "目前只會檢查來源連線，尚不會自動整理優惠。"
+  );
+});
+
+$("connectBtn").addEventListener("click", () => {
+  const value = $("apiInput").value.trim();
+
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(value)) {
+    alert("請輸入有效的 Apps Script /exec 網址");
+    return;
+  }
+
+  apiUrl = value;
+  localStorage.setItem("cardApiUrl", value);
+  loadData();
+});
+
+$("apiInput").value = apiUrl;
+
+if (apiUrl) {
+  loadData();
+} else {
+  $("cardList").textContent = "請先連接資料庫。";
+  $("offerList").textContent = "請先連接資料庫。";
+}
+</script>
+</body>
+</html>
