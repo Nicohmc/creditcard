@@ -169,7 +169,11 @@ footer { text-align:center; padding:24px; color:var(--sub); }
       <h1>💳 刷哪張？</h1>
       <small>信用卡優惠智慧搜尋系統</small>
     </div>
-    <span id="connection">尚未連線</span>
+    <div style="text-align:right;line-height:1.55">
+      <div id="connection">尚未連線</div>
+      <small id="siteVersion" style="display:block">網站版本：v1.1.2</small>
+      <small id="sitePublished" style="display:block">網站發布：2026/10/14 10:42（台灣）</small>
+    </div>
   </div>
 </header>
 
@@ -221,6 +225,8 @@ footer { text-align:center; padding:24px; color:var(--sub); }
   <section id="update" class="page">
     <div class="panel">
       <h2>資料庫與更新中心</h2>
+      <p class="muted">網站程式版本：v1.1.2｜本次發布時間：2026/10/14 10:42（台灣時間）</p>
+      <p class="muted">注意：以上是網站程式發布時間，不是銀行優惠資料更新時間。</p>
       <div id="dbStatus" class="notice">
         尚未連接 Google Apps Script。
       </div>
@@ -359,7 +365,7 @@ async function loadData() {
       "信用卡：" + cards.length + " 張<br>" +
       "優惠：" + offers.length + " 筆<br>" +
       "商店：" + merchants.length + " 筆<br>" +
-      "資料版本：" + escapeHTML(status.version) +
+      "後端程式版本：" + escapeHTML(status.version) +
       "<br><br>注意：官方來源檢查不代表優惠已更新。";
     renderOffers();
     searchOffers();
