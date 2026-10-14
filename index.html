@@ -243,6 +243,14 @@ footer { text-align:center; padding:24px; color:var(--sub); }
       </p>
     </div>
     <div class="panel">
+      <h2>連線診斷工具</h2>
+      <p class="muted">如果連線失敗，請先分別打開下面兩個測試連結。它們會查詢同一個後端，但不透過網站的跨網域載入程式。</p>
+      <div class="actions">
+        <button class="secondary" id="testStatusBtn">測試後端狀態</button>
+        <button class="secondary" id="testCardsBtn">測試信用卡清單</button>
+      </div>
+      <p class="muted">正常結果：第一個連結應以 cardTest( 開頭、card_count 為 5；第二個連結應以 cardTest( 開頭，包含五張卡的 data 陣列。</p>
+      <div style="margin:22px 0;border-top:1px solid #e5eaf1"></div>
       <h2>後端連線設定</h2>
       <label for="apiInput">Apps Script /exec 網址</label>
       <input id="apiInput"
@@ -519,6 +527,16 @@ $("checkSourcesBtn").addEventListener("click", () => {
     "信用卡優惠管理 → 檢查官方來源\n\n" +
     "目前只會檢查來源連線，尚不會自動整理優惠。"
   );
+});
+
+["status", "cards"].forEach(action => {
+  const id = action === "status" ? "testStatusBtn" : "testCardsBtn";
+  $(id).addEventListener("click", () => {
+    const base = ($("apiInput").value.trim() || apiUrl).replace(/[?&].*$/, "");
+    if (!base) { alert("請先設定 Apps Script /exec 網址"); return; }
+    const testUrl = base + "?action=" + action + "&callback=cardTest";
+    window.open(testUrl, "_blank", "noopener");
+  });
 });
 
 $("connectBtn").addEventListener("click", () => {
